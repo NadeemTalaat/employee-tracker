@@ -52,7 +52,7 @@ const userPrompt = () => {
       name: "userPrompt",
       choices: promptChoices,
     })
-    .then((answer) => {
+    .then(async (answer) => {
       switch (answer.userPrompt) {
         // View all Departments
         case promptChoices[0]:
@@ -195,6 +195,89 @@ const userPrompt = () => {
         //Add an employee
         case promptChoices[5]:
           console.log("Add an employee");
+
+          const getRoles = () => {
+            return new Promise((resolve, reject) => {
+              db.query("SELECT * FROM role", (err, result) => {
+                if (err) {
+                  console.log(err);
+                  reject(err);
+                } else {
+                  const rolesMap = result.map((obj) => obj.title);
+                  resolve(rolesMap);
+                }
+              });
+            });
+          };
+
+          const roles = await getRoles();
+
+          const getEmployees = () => {
+            return new Promise((resolve, reject) => {
+              db.query("SELECT * FROM employee", (err, result) => {
+                if (err) {
+                  console.log(err);
+                  reject(err);
+                } else {
+                  const employeesMap = result.map(
+                    (employee) => `${employee.first_name} ${employee.last_name}`
+                  );
+                  resolve(employeesMap);
+                }
+              });
+            });
+          };
+
+          const employees = await getEmployees();
+
+          inquirer
+            .prompt([
+              {
+                type: "input",
+                name: "firstName",
+                message: "What is the employee's first name?",
+              },
+              {
+                type: "input",
+                name: "lastName",
+                message: "What is the employee's last name?",
+              },
+              {
+                type: "list",
+                name: "role",
+                message: "What is the employee's role?",
+                choices: roles,
+              },
+              {
+                type: "list",
+                name: "manager",
+                message: "Who is the employee's manager?",
+                choices: employees,
+              },
+            ])
+            .then((answer) => {
+              const roleID = roles.findIndex((obj) => obj == answer.role) + 1;
+
+              const employeeID =
+                employees.findIndex((obj) => obj == answer.manager) + 1;
+
+              db.query(
+                `INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${answer.firstName}", "${answer.lastName}", ${roleID}, ${employeeID})`,
+                (err, result) => {
+                  if (err) {
+                    console.log(err);
+                  }
+
+                  db.query(`SELECT * FROM employee`, (err, result) => {
+                    if (err) {
+                      console.log(err);
+                    }
+                    console.table(result);
+                  });
+                }
+              );
+            });
+
           break;
 
         // Update an employee role
