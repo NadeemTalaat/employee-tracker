@@ -43,6 +43,7 @@ const promptChoices = [
   "Add a role",
   "Add an employee",
   "Update an employee role",
+  "None",
 ];
 
 const userPrompt = () => {
@@ -50,6 +51,7 @@ const userPrompt = () => {
     .prompt({
       type: "list",
       name: "userPrompt",
+      message: "What would you like to do?",
       choices: promptChoices,
     })
     .then(async (answer) => {
@@ -63,7 +65,9 @@ const userPrompt = () => {
               console.log(err);
             }
             console.table(result);
+            userPrompt();
           });
+
           break;
 
         // View All Roles
@@ -77,6 +81,7 @@ const userPrompt = () => {
                 console.log(err);
               }
               console.table(result);
+              userPrompt();
             }
           );
           break;
@@ -102,6 +107,7 @@ const userPrompt = () => {
                 console.log(err);
               }
               console.table(result);
+              userPrompt();
             }
           );
 
@@ -131,6 +137,7 @@ const userPrompt = () => {
                       console.log(err);
                     }
                     console.table(result);
+                    userPrompt();
                   });
                 }
               );
@@ -179,12 +186,8 @@ const userPrompt = () => {
                       console.log(err);
                     }
 
-                    db.query(`SELECT * FROM role`, (err, result) => {
-                      if (err) {
-                        console.log(err);
-                      }
-                      console.table(result);
-                    });
+                    console.log(`Added ${answer.name} to the database`);
+                    userPrompt();
                   }
                 );
               });
@@ -230,6 +233,8 @@ const userPrompt = () => {
 
           const employees = await getEmployees();
 
+          employees.push("None");
+
           inquirer
             .prompt([
               {
@@ -258,8 +263,12 @@ const userPrompt = () => {
             .then((answer) => {
               const roleID = roles.findIndex((obj) => obj == answer.role) + 1;
 
-              const employeeID =
-                employees.findIndex((obj) => obj == answer.manager) + 1;
+              let employeeID = null;
+
+              if (answer.manager !== "None") {
+                employeeID =
+                  employees.findIndex((obj) => obj == answer.manager) + 1;
+              }
 
               db.query(
                 `INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${answer.firstName}", "${answer.lastName}", ${roleID}, ${employeeID})`,
@@ -268,12 +277,10 @@ const userPrompt = () => {
                     console.log(err);
                   }
 
-                  db.query(`SELECT * FROM employee`, (err, result) => {
-                    if (err) {
-                      console.log(err);
-                    }
-                    console.table(result);
-                  });
+                  console.log(
+                    `Added ${answer.firstName} ${answer.lastName} to the database`
+                  );
+                  userPrompt();
                 }
               );
             });
@@ -284,6 +291,9 @@ const userPrompt = () => {
         case promptChoices[6]:
           console.log("Update an employee role");
           break;
+
+        case promptChoices[7]:
+          process.exit();
 
         default:
           userPrompt();
