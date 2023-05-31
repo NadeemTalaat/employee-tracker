@@ -55,6 +55,39 @@ const userPrompt = () => {
       choices: promptChoices,
     })
     .then(async (answer) => {
+      const getRoles = () => {
+        return new Promise((resolve, reject) => {
+          db.query("SELECT * FROM role", (err, result) => {
+            if (err) {
+              console.log(err);
+              reject(err);
+            } else {
+              const rolesMap = result.map((obj) => obj.title);
+              resolve(rolesMap);
+            }
+          });
+        });
+      };
+
+      const getEmployees = () => {
+        return new Promise((resolve, reject) => {
+          db.query("SELECT * FROM employee", (err, result) => {
+            if (err) {
+              console.log(err);
+              reject(err);
+            } else {
+              const employeesMap = result.map(
+                (employee) => `${employee.first_name} ${employee.last_name}`
+              );
+              resolve(employeesMap);
+            }
+          });
+        });
+      };
+
+      const roles = await getRoles();
+      const employees = await getEmployees();
+
       switch (answer.userPrompt) {
         // View all Departments
         case promptChoices[0]:
@@ -90,18 +123,19 @@ const userPrompt = () => {
         case promptChoices[2]:
           console.log("View All Employees");
 
-          // db.query(`SELECT * FROM employee`, (err, result) => {
-          //   if (err) {
-          //     console.log(err);
-          //   }
-          //   console.table(result);
-          // });
-
           db.query(
-            `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, employee.manager_id
-            FROM employee
-            JOIN role ON employee.role_id = role.id
-            JOIN department ON role.department_id = department.id; `,
+            `SELECT 
+            employee.id AS EmployeeID,
+            employee.first_name AS FirstName,
+            employee.last_name AS LastName,
+            role.title AS Title,
+            department.name AS Department,
+            CONCAT(manager.first_name, ' ', manager.last_name) AS Manager
+        FROM 
+            employee
+            INNER JOIN role ON employee.role_id = role.id
+            INNER JOIN department ON role.department_id = department.id
+            LEFT JOIN employee AS manager ON employee.manager_id = manager.id; `,
             (err, result) => {
               if (err) {
                 console.log(err);
@@ -124,7 +158,6 @@ const userPrompt = () => {
               name: "name",
             })
             .then((answer) => {
-              console.log(answer);
               db.query(
                 `INSERT INTO department (name) VALUES("${answer.name}")`,
                 (err, result) => {
@@ -132,13 +165,10 @@ const userPrompt = () => {
                     console.log(err);
                   }
 
-                  db.query(`SELECT * FROM department`, (err, result) => {
-                    if (err) {
-                      console.log(err);
-                    }
-                    console.table(result);
-                    userPrompt();
-                  });
+                  console.log(
+                    `${answer.name} has been added to the department lists!`
+                  );
+                  userPrompt();
                 }
               );
             });
@@ -146,8 +176,6 @@ const userPrompt = () => {
 
         // Add a role
         case promptChoices[4]:
-          console.log("Add a role");
-
           db.query(`SELECT * FROM department`, (err, result) => {
             if (err) {
               console.log(err);
@@ -198,40 +226,6 @@ const userPrompt = () => {
         //Add an employee
         case promptChoices[5]:
           console.log("Add an employee");
-
-          const getRoles = () => {
-            return new Promise((resolve, reject) => {
-              db.query("SELECT * FROM role", (err, result) => {
-                if (err) {
-                  console.log(err);
-                  reject(err);
-                } else {
-                  const rolesMap = result.map((obj) => obj.title);
-                  resolve(rolesMap);
-                }
-              });
-            });
-          };
-
-          const roles = await getRoles();
-
-          const getEmployees = () => {
-            return new Promise((resolve, reject) => {
-              db.query("SELECT * FROM employee", (err, result) => {
-                if (err) {
-                  console.log(err);
-                  reject(err);
-                } else {
-                  const employeesMap = result.map(
-                    (employee) => `${employee.first_name} ${employee.last_name}`
-                  );
-                  resolve(employeesMap);
-                }
-              });
-            });
-          };
-
-          const employees = await getEmployees();
 
           employees.push("None");
 
@@ -290,8 +284,47 @@ const userPrompt = () => {
         // Update an employee role
         case promptChoices[6]:
           console.log("Update an employee role");
+
+          inquirer
+            .prompt([
+              {
+                type: "list",
+                name: "employee",
+                message: "Which employee would you like to update?",
+                choices: employees,
+              },
+              {
+                type: "list",
+                name: "role",
+                message: "Which role would you like to assign to the employee?",
+                choices: roles,
+              },
+            ])
+            .then((answer) => {
+              const roleID = roles.findIndex((obj) => obj == answer.role) + 1;
+
+              const employeeID =
+                employees.findIndex((obj) => obj == answer.employee) + 1;
+
+              db.query(
+                `UPDATE employee
+                SET role_id = ${roleID} WHERE id = ${employeeID}`,
+                (err, result) => {
+                  if (err) {
+                    console.log(err);
+                  }
+
+                  console.log(
+                    `Updated ${answer.employee}'s role in the database`
+                  );
+                  userPrompt();
+                }
+              );
+            });
+
           break;
 
+        // None
         case promptChoices[7]:
           process.exit();
 
