@@ -17,7 +17,7 @@ This is a command-line based employee database which allows you to view or add d
 
 ## Installation
 
-To install and use the application, run "node server.js" from the root folder.
+To install and use the application, run "npm i" followed by "node server.js" from the root folder.
 
 ## Usage
 
