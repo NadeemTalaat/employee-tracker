@@ -23,6 +23,8 @@ To install and use the application, run "node server.js" from the root folder.
 
 See installation instructions above.
 
+For a demonstration of the application, watch this [video](https://drive.google.com/file/d/1PlFdbyiI4Sgm2WygUr2ztgzZ__cMIQ7j/view).
+
 ## Contributing
 
 Nadeem Talaat
